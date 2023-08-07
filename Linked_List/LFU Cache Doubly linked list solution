@@ -1,0 +1,128 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+class Node{
+public:
+    int data;
+    int value;
+    Node* prev;
+    Node* next;
+
+    Node(int data, int value){
+        this->data = data;
+        this->value=value;
+        this->next = nullptr;
+        this->prev = nullptr;
+    }
+};
+
+
+class LFUCache {
+    int capacity;
+    unordered_map<int, pair<int, Node*>> mp;
+    map<int, pair<Node*, Node*>> m;
+    int curr_size=0;
+public:
+    LFUCache(int capacity) {
+        this->capacity = capacity;
+        curr_size=0;
+    }
+
+    int get(int key) {
+        if(mp.find(key)==mp.end())
+            return -1;
+
+        int result=mp[key].second->value;
+        updateFreq(key, mp[key].second->data, mp[key].second->value);
+        return result;
+    }
+
+    void put(int key, int value) {
+        if(mp.find(key)!=mp.end()){   //key already existing
+            updateFreq(key, key, value);
+        }
+        else curr_size++;
+
+        if(curr_size>capacity){
+            for(auto &it: m){
+                if(it.second.first){
+                    mp.erase(it.second.first->data);
+                    deleteNode(it.second.first, it.second.second, it.second.second);
+                    if(it.second.first== nullptr) m.erase(it.first);
+                    break;
+                }
+            }
+            curr_size--;
+        }
+
+        if(m.find(1)==m.end()){
+            Node* new_head = nullptr;
+            Node* new_tail = nullptr;
+            insertAtHead(new_head, new_tail, key, value);
+            m[1].first = new_head;
+            m[1].second=new_tail;
+        }else{
+            insertAtHead(m[1].first, m[1].second, key, value);
+        }
+        mp[key].first = 1;
+        mp[key].second=m[1].first;
+
+    }
+
+    void updateFreq(int key, int data, int value){
+        deleteNode(m[mp[key].first].first, m[mp[key].first].second, mp[key].second);
+        mp[key].first++;
+        if(m.find(mp[key].first)==m.end()){
+            Node* new_head = nullptr;
+            Node* new_tail = nullptr;
+            insertAtHead(new_head, new_tail, data, value);
+            m[mp[key].first].first = new_head;
+            m[mp[key].first].second=new_tail;
+        }else{
+            insertAtHead(m[mp[key].first].first, m[mp[key].first].second, data, value);
+        }
+        mp[key].second = m[mp[key].first].first;
+    }
+    void insertAtHead(Node* &head,Node* &tail, int data, int value){
+        Node* new_node = new Node(data, value);
+        new_node->next=head;
+        if(head) head->prev=new_node;
+        head=new_node;
+        if(tail== nullptr) tail=head;
+    }
+    void deleteNode(Node* &head, Node* &tail, Node* p){
+        if(p== nullptr) return;
+
+        Node* x = p->prev;
+        Node* y = p->next;
+        if(p==head) head=head->next;
+        if(p==tail) tail=tail->prev;
+        if(x) x->next=y;
+        if(y) y->prev=x;
+        delete p;
+    }
+};
+
+/**
+ * Your LRUCache object will be instantiated and called as such:
+ * LRUCache* obj = new LRUCache(capacity);
+ * int param_1 = obj->get(key);
+ * obj->put(key,value);
+ */
+/**
+ * Your LFUCache object will be instantiated and called as such:
+ * LFUCache* obj = new LFUCache(capacity);
+ * int param_1 = obj->get(key);
+ * obj->put(key,value);
+ */
+
+int main(){
+    LFUCache* obj = new LFUCache(2);
+    obj->put(1,1);
+    obj->put(2,2);
+    cout<<obj->get(1)<<" ";
+    obj->put(3,3);
+    cout<<obj->get(2)<<" ";
+    obj->put(4,4);
+    cout<<obj->get(1)<<" ";
+}
